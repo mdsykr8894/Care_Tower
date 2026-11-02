@@ -1,6 +1,7 @@
 'use strict';
 // Single-session optimistic storage. Works in separate serverless instances.
 const {GameState}=require('./game-state');
+const {supabaseAdapter}=require('./supabase-store');
 const PATH=process.env.CARE_STATE_PATH||'care-tower/current-session.json';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 let writeTail=Promise.resolve();
@@ -44,4 +45,9 @@ function transaction(adapter,fn,options){
  writeTail=run.catch(()=>undefined);
  return run;
 }
-module.exports={blobAdapter,query,transaction,conflict};
+function storageAdapter(){
+ const requested=String(process.env.CARE_STORAGE||'').toLowerCase();
+ const useSupabase=requested==='supabase'||(!requested&&process.env.SUPABASE_URL&&(process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY));
+ return useSupabase?supabaseAdapter():blobAdapter();
+}
+module.exports={blobAdapter,supabaseAdapter,storageAdapter,query,transaction,conflict};

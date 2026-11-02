@@ -1,9 +1,9 @@
 'use strict';
 const {randomBytes,timingSafeEqual}=require('node:crypto');
-const {blobAdapter,query,transaction}=require('../server/blob-store');
+const {storageAdapter,query,transaction}=require('../server/blob-store');
 const {exportCsv}=require('../server/export-data');
 let adapter;
-const getAdapter=()=>adapter||(adapter=blobAdapter());
+const getAdapter=()=>adapter||(adapter=storageAdapter());
 const hostFailures=new Map(),HOST_WINDOW_MS=60000,HOST_MAX_FAILURES=8,HOST_BLOCK_MS=300000;
 function send(res,code,obj){res.statusCode=code;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.end(JSON.stringify(obj));}
 function hostAttemptKey(req){return String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,100);}
@@ -20,7 +20,14 @@ module.exports=async function handler(req,res){
   const route=pathname(req),method=req.method;activeRoute=route;
   if(route==='/api/config'&&method==='GET')return send(res,200,{cloud:true});
   if(route==='/api/links'&&method==='GET')return send(res,200,{links:[origin(req)],recommended:origin(req)});
-  if(route==='/api/health'&&method==='GET'){if(!process.env.BLOB_READ_WRITE_TOKEN&&!process.env.BLOB_STORE_ID&&!process.env.VERCEL_OIDC_TOKEN) return send(res,503,{ok:false,error:'Vercel Blob belum disambungkan.'});return send(res,200,{ok:true,version:'1.3.1',storage:'private-vercel-blob'});}
+  if(route==='/api/health'&&method==='GET'){
+   const requested=String(process.env.CARE_STORAGE||'').toLowerCase();
+   const useSupabase=requested==='supabase'||(!requested&&process.env.SUPABASE_URL&&(process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY));
+   if(useSupabase&&!process.env.SUPABASE_URL) return send(res,503,{ok:false,error:'Supabase URL belum disambungkan.'});
+   if(useSupabase&&!process.env.SUPABASE_SERVICE_ROLE_KEY&&!process.env.SUPABASE_SERVICE_KEY) return send(res,503,{ok:false,error:'Supabase service key belum disambungkan.'});
+   if(!useSupabase&&!process.env.BLOB_READ_WRITE_TOKEN&&!process.env.BLOB_STORE_ID&&!process.env.VERCEL_OIDC_TOKEN) return send(res,503,{ok:false,error:'Storage belum disambungkan.'});
+   return send(res,200,{ok:true,version:'1.3.1',storage:useSupabase?'supabase-postgres':'private-vercel-blob'});
+  }
   if(route==='/api/qr.svg'&&method==='GET'){
     const target=new URL(req.url,'https://example.test').searchParams.get('url')||req.query?.url||origin(req);
     if(target!==origin(req)){return send(res,400,{error:'QR URL tidak sepadan dengan website ini.'});}
