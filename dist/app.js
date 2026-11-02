@@ -12,40 +12,51 @@ const graphics=new TowerView($('#towerCanvas'),el.frame,()=>drop());
 const fmt=(ms)=>{const sec=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 function emit(text,detail=''){el.callout.replaceChildren();el.callout.append(document.createTextNode(text));if(detail){const span=document.createElement('span');span.textContent=detail;el.callout.append(span);}el.callout.classList.remove('hidden');el.callout.style.animation='none';void el.callout.offsetWidth;el.callout.style.animation='';clearTimeout(current.calloutTimer);current.calloutTimer=setTimeout(()=>el.callout.classList.add('hidden'),850);}
-let audioCtx=null,loop=null,loopIndex=0;
+let audioCtx=null,audioBus=null,loop=null,loopIndex=0;
+function createAudio(){
+ const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+ if(!audioCtx||audioCtx.state==='closed'){
+  try{audioCtx=new AC({latencyHint:'interactive'});}catch{audioCtx=new AC();}
+  audioBus=audioCtx.createGain();audioBus.gain.value=1;audioBus.connect(audioCtx.destination);
+ }
+ return true;
+}
+function warmAudio(){
+ if(!audioCtx||!audioBus)return;
+ try{const buffer=audioCtx.createBuffer(1,1,22050),source=audioCtx.createBufferSource();source.buffer=buffer;source.connect(audioBus);source.start(0);}catch{}
+}
 async function audio(){
- const AC=window.AudioContext||window.webkitAudioContext;
- if(!AC)return false;
+ if(!createAudio())return false;
  try{
-  if(!audioCtx||audioCtx.state==='closed')audioCtx=new AC({latencyHint:'interactive'});
+  warmAudio();
   if(audioCtx.state!=='running')await audioCtx.resume();
   return audioCtx.state==='running';
  }catch{return false;}
 }
-function tone(hz,t,dur,vol=.035,type='sine'){
+function tone(hz,t,dur,vol=.058,type='sine'){
  if(!current.unmuted||audioCtx?.state!=='running')return;
  const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.value=hz;
  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
- o.connect(g).connect(audioCtx.destination);o.start(t);o.stop(t+dur+.02);
+ o.connect(g).connect(audioBus||audioCtx.destination);o.start(t);o.stop(t+dur+.02);
 }
 function sfx(event){
  if(!current.unmuted||audioCtx?.state!=='running')return;
  const t=audioCtx.currentTime+.01;
  const notes={click:[[440,.12]],right:[[523,.14],[659,.22]],wrong:[[329,.12],[293,.17]],drop:[[176,.12],[130,.1]],perfect:[[588,.2],[740,.26],[880,.28]],finish:[[392,.23],[523,.26],[659,.28],[784,.35]]}[event]||[];
- notes.forEach(([hz,d],i)=>tone(hz,t+i*.095,d,event==='drop'?.047:.04,i===0?'triangle':'sine'));
+ notes.forEach(([hz,d],i)=>tone(hz,t+i*.095,d,event==='drop'?.070:.058,i===0?'triangle':'sine'));
 }
 function music(){
  if(loop||!current.unmuted||audioCtx?.state!=='running')return;
  const notes=[261.63,329.63,392,329.63,293.66,349.23,440,349.23,261.63,329.63,392,493.88,293.66,349.23,440,392];
  const play=()=>{if(!current.unmuted||document.hidden||audioCtx?.state!=='running')return;
-  const t=audioCtx.currentTime+.01;tone(notes[loopIndex%16],t,.4,.009);if(loopIndex%4===0)tone(notes[loopIndex%16]/2,t,.7,.006,'triangle');loopIndex++;};
+  const t=audioCtx.currentTime+.01;tone(notes[loopIndex%16],t,.4,.015);if(loopIndex%4===0)tone(notes[loopIndex%16]/2,t,.7,.010,'triangle');loopIndex++;};
  play();loop=setInterval(play,510);
 }
 function stopMusic(){clearInterval(loop);loop=null;}
 function soundLabel(){const on=current.unmuted;el.sound.classList.toggle('active',on);el.sound.setAttribute('aria-label',on?'Mute sound':'Turn on sound & test audio');el.sound.title=on?'Sound on · tap to mute':'Sound off · tap to test';const tag=$('#soundLabel');if(tag)tag.textContent=on?'On':'Off';}
 el.sound.onclick=async()=>{
  if(current.unmuted){current.unmuted=false;stopMusic();soundLabel();return;}
- current.unmuted=true;const ok=await audio();if(!ok){current.unmuted=false;soundLabel();emit('Sound unavailable','Cuba tap ikon sound sekali lagi');return;}
+ const ok=await audio();if(!ok){current.unmuted=false;soundLabel();emit('Sound unavailable','Cuba tap ikon sound sekali lagi');return;}current.unmuted=true;
  soundLabel();sfx('perfect');music();
 };
 async function restoreSound(){if(!current.unmuted)return;const ok=await audio();if(ok)music();else{stopMusic();el.sound.title='Tap untuk hidupkan semula sound';}}

@@ -12,6 +12,9 @@ test('iPhone audio is opt-in and tests sound in a user gesture',()=>{
  assert.match(js,/unmuted:false/);
  assert.match(js,/el\.sound\.onclick=async/);
  assert.match(js,/audioCtx\.resume\(\)/);
+ assert.match(js,/createBufferSource\(\)/);
+ assert.match(js,/new AC\(\)/);
+ assert.match(js,/event==='drop'\?\.070:\.058/);
  assert.match(js,/audioCtx\.state!=='running'/);
  assert.match(js,/pageshow/);
  assert.match(source('public/index.html'),/id="soundLabel"/);
