@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),http=requir
 const original=Module._load;let entry=null,count=0;
 const fakeBlob={
  async get(){if(!entry)return null;return {blob:{etag:entry.tag},stream:new Response(entry.data).body};},
+ async head(){if(!entry){const e=new Error('not found');e.status=404;throw e;}return {etag:entry.tag};},
  async put(_path,data,opt){if(!entry&&opt.allowOverwrite){const e=new Error('precondition');e.status=412;throw e;}
  if(entry&&(!opt.allowOverwrite||opt.ifMatch!==entry.tag)){const e=new Error('precondition');e.status=412;throw e;}
  entry={data,tag:String(++count)};return {etag:entry.tag};}

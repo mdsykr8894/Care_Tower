@@ -5,9 +5,18 @@ const PATH=process.env.CARE_STATE_PATH||'care-tower/current-session.json';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
 function conflict(e){return e?.status===409||e?.status===412||e?.statusCode===409||e?.statusCode===412||/precondition|already.exists|conflict/i.test(e?.name||'')||/precondition|already exists|conflict/i.test(e?.message||'');}
 function blobAdapter(){
- const {get,put}=require('@vercel/blob');
+ const {get,head,put}=require('@vercel/blob');
  return {
-  async read(){const r=await get(PATH,{access:'private',useCache:false});if(!r)return {snapshot:null,etag:null};const text=await new Response(r.stream).text();return {snapshot:JSON.parse(text),etag:r.blob.etag};},
+  async read(){
+   const r=await get(PATH,{access:'private',useCache:false});
+   if(!r)return {snapshot:null,etag:null};
+   const text=await new Response(r.stream).text();
+   // get() returns the document, while head() asks Blob for current metadata.
+   // Keeping the ETag from a separate metadata request avoids retrying forever
+   // when a private-blob CDN response contains an older ETag than the object.
+   const metadata=await head(PATH,{access:'private'});
+   return {snapshot:JSON.parse(text),etag:metadata.etag};
+  },
   async write(snapshot,etag){await put(PATH,JSON.stringify(snapshot),{access:'private',contentType:'application/json',cacheControlMaxAge:60,...(etag?{allowOverwrite:true,ifMatch:etag}:{allowOverwrite:false})});}
  };
 }
