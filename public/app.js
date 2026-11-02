@@ -94,11 +94,22 @@ function acceptState(s){
  current.lastRevision=Math.max(current.lastRevision,s.revision);return true;
 }
 function applyFresh(s){if(!acceptState(s))return;apply(s);}
-function schedulePhaseSync(p){
+function schedulePhaseSync(p,attempt=current.phaseSyncAttempt||0){
  if(current.demo||p?.phase!=='quiz_feedback')return;
+ const phaseKey=`${p.round}:${p.phase}:${p.phaseStart}`;
+ if(current.phaseSyncKey!==phaseKey){current.phaseSyncKey=phaseKey;current.phaseSyncAttempt=0;}
+ if(current.phaseSyncAttempt>=3&&attempt>=3)return;
  clearTimeout(current.phaseSyncTimer);
  const delay=Math.max(120,Math.min(3000,p.phaseEnd-now()+120));
- current.phaseSyncTimer=setTimeout(()=>{current.phaseSyncTimer=null;sync(true);},delay);
+ current.phaseSyncTimer=setTimeout(async()=>{
+  current.phaseSyncTimer=null;
+  await sync(true);
+  const latest=current.game?.player;
+  if(latest?.phase==='quiz_feedback'&&latest.phaseStart===p.phaseStart){
+   current.phaseSyncAttempt=Math.min(3,(current.phaseSyncAttempt||0)+1);
+   if(current.phaseSyncAttempt<3)schedulePhaseSync(latest,current.phaseSyncAttempt);
+  }
+ },delay);
 }
 async function sync(force=false){
  if(current.demo||!current.token)return;
@@ -124,7 +135,7 @@ function renderQuestion(round){const q=Q[round];if(!q)return;el.number.textConte
 function rankings(items,name){el.leaders.replaceChildren();if(!items?.length){const p=document.createElement('div');p.className='leader-row';p.textContent='Leaderboard akan muncul sebaik pemain mendapat skor.';el.leaders.append(p);return;}for(const item of items.slice(0,5)){const row=document.createElement('div');row.className='leader-row'+(item.name===name?' me':'');const rank=document.createElement('span');rank.className='leader-rank';rank.textContent=`#${item.rank}`;const nick=document.createElement('span');nick.textContent=item.name;nick.style.flex='1';const points=document.createElement('span');points.className='leader-score';points.textContent=item.score.toLocaleString('ms-MY');row.append(rank,nick,points);el.leaders.append(row);}}
 function result(s){const p=s.player;if(!current.resultShown){current.resultShown=true;graphics.setIdle();show('result');sfx('finish');}current.finished=s.status==='finished';el.resultScore.textContent=p.score;el.correct.textContent=p.correct;el.perfect.textContent=p.perfect;el.rank.textContent=(current.public?.leaderboard?.find(x=>x.name===p.name)?.rank)||p.rank||'—';el.finishNote.textContent=current.demo?'Solo Play · Nice run!':s.status==='finished'?'Final score · Thanks for playing!':'All done! Ranking akhir akan dikemas kini apabila masa tamat.';rankings(current.demo?[{rank:1,name:p.name,score:p.score}]:(s.leaderboard?.length?s.leaderboard:current.public?.leaderboard)||[],p.name);el.review.replaceChildren();p.history.forEach(h=>{const q=Q[h.round],wrap=document.createElement('div');wrap.className='review-item';const title=document.createElement('strong');let right=current.demo?window.CARE_DEMO_ANSWERS[h.round]:null;title.textContent=`#${h.round+1} · ${h.correct?'✓ Correct':'Keep Learning'}`;const copy=document.createElement('div');copy.textContent=right?.explain||'Semak jawapan bersama presenter selepas game tamat.';wrap.append(title,copy);el.review.append(wrap);});}
 el.reviewButton.onclick=()=>{const hidden=el.review.classList.toggle('hidden');el.reviewButton.textContent=hidden?'Round Recap ↓':'Close Recap ↑';};
-function apply(s){const p=s.player;current.game=s;if(current.session===null)current.session=s.session;if(!current.demo&&s.session!==current.session)return;el.score.textContent=p.score;el.level.textContent=Math.min(p.round+1,10)+' / 10';pausedOverlay.classList.toggle('hidden',s.status!=='paused');graphics.paused=s.status==='paused';
+function apply(s){const p=s.player;current.game=s;if(Number.isFinite(s.players)&&el.count)el.count.textContent=s.players;if(current.session===null)current.session=s.session;if(!current.demo&&s.session!==current.session)return;el.score.textContent=p.score;el.level.textContent=Math.min(p.round+1,10)+' / 10';pausedOverlay.classList.toggle('hidden',s.status!=='paused');graphics.paused=s.status==='paused';
  if(s.status==='waiting'){el.waitingName.textContent=p.name;show('waiting');graphics.setIdle();return;}
  if(s.status==='finished'||p.phase==='complete'){result(s);return;}
  const key=`${p.round}:${p.phase}:${p.phaseStart}`;
@@ -135,7 +146,10 @@ function apply(s){const p=s.player;current.game=s;if(current.session===null)curr
  }else if(p.phase==='question'){
   if(current.lastKey!==key){current.dropping=false;current.answering=false;graphics.rebuild(p.history);graphics.setIdle();renderQuestion(p.round);show('question');current.lastKey=key;}
  }else if(p.phase==='quiz_feedback'){
-  if(current.lastKey!==key){graphics.rebuild(p.history);graphics.setIdle();show('question');$$('.answer-button').forEach(x=>x.disabled=true);current.lastKey=key;schedulePhaseSync(p);}
+  if(current.lastKey!==key){graphics.rebuild(p.history);graphics.setIdle();show('question');$$('.answer-button').forEach(x=>x.disabled=true);current.lastKey=key;}
+  schedulePhaseSync(p);
+ }else if(current.phaseSyncTimer){
+  clearTimeout(current.phaseSyncTimer);current.phaseSyncTimer=null;current.phaseSyncKey='';current.phaseSyncAttempt=0;
  }
  if(s.status==='paused')el.drop.disabled=true;
 }
