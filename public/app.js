@@ -3,7 +3,7 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const Q=window.CARE_QUESTIONS; const {TowerView,motionX,gradeOffset}=window.CareTowerGraphics;
 const el={frame:$('.game-frame'),intro:$('#intro'),waiting:$('#waiting'),question:$('#questionScreen'),stack:$('#playBottom'),hud:$('#playHud'),result:$('#result'),time:$('#globalTime'),score:$('#scoreText'),level:$('#levelText'),combo:$('#comboIndicator'),name:$('#nickname'),start:$('#startBtn'),startLabel:$('#startLabel'),error:$('#introError'),mode:$('#introMode'),waitingName:$('#waitingName'),count:$('#playerCount'),number:$('#questionNumber'),theme:$('#questionTheme'),prompt:$('#questionPrompt'),choices:$('#answerOptions'),progress:$('#quizProgress'),questionTime:$('#questionTime'),stackTime:$('#stackTime'),drop:$('#dropBtn'),callout:$('#callout'),resultScore:$('#finalScore'),correct:$('#correctCount'),perfect:$('#perfectCount'),rank:$('#rankCount'),leaders:$('#miniLeaderboard'),review:$('#reviewPanel'),reviewButton:$('#reviewBtn'),finishNote:$('#finishNote'),sound:$('#soundToggle')};
-const current={cloud:false,demo:location.protocol==='file:',token:null,session:null,clockSkew:0,game:null,public:null,lastKey:'',lastHistory:-1,lastRound:-1,dropping:false,answering:false,unmuted:false,finished:false,resultShown:false,calloutTimer:null,local:null,lastSync:0,connected:true,pending:null,demoReady:false,syncPromise:null,lastRevision:-1,connectionFailures:0};
+const current={cloud:false,demo:location.protocol==='file:',token:null,session:null,clockSkew:0,game:null,public:null,lastKey:'',lastHistory:-1,lastRound:-1,dropping:false,answering:false,unmuted:false,finished:false,resultShown:false,calloutTimer:null,phaseSyncTimer:null,local:null,lastSync:0,connected:true,pending:null,demoReady:false,syncPromise:null,lastRevision:-1,connectionFailures:0};
 const perf={requests:[],drops:[]};
 function timing(type,entry){const list=perf[type];if(!list)return;list.push(entry);if(list.length>60)list.shift();if(new URLSearchParams(location.search).has('debug'))console.debug('[Care Tower]',type,entry);}
 const show=(name)=>{el.intro.classList.toggle('hidden',name!=='intro');el.waiting.classList.toggle('hidden',name!=='waiting');el.question.classList.toggle('hidden',name!=='question');el.stack.classList.toggle('hidden',name!=='stack');el.result.classList.toggle('hidden',name!=='result');el.hud.classList.toggle('hidden',!['question','stack'].includes(name));};
@@ -94,6 +94,12 @@ function acceptState(s){
  current.lastRevision=Math.max(current.lastRevision,s.revision);return true;
 }
 function applyFresh(s){if(!acceptState(s))return;apply(s);}
+function schedulePhaseSync(p){
+ if(current.demo||p?.phase!=='quiz_feedback')return;
+ clearTimeout(current.phaseSyncTimer);
+ const delay=Math.max(120,Math.min(3000,p.phaseEnd-now()+120));
+ current.phaseSyncTimer=setTimeout(()=>{current.phaseSyncTimer=null;sync(true);},delay);
+}
 async function sync(force=false){
  if(current.demo||!current.token)return;
  if(current.syncPromise)return current.syncPromise;
@@ -129,7 +135,7 @@ function apply(s){const p=s.player;current.game=s;if(current.session===null)curr
  }else if(p.phase==='question'){
   if(current.lastKey!==key){current.dropping=false;current.answering=false;graphics.rebuild(p.history);graphics.setIdle();renderQuestion(p.round);show('question');current.lastKey=key;}
  }else if(p.phase==='quiz_feedback'){
-  if(current.lastKey!==key){graphics.rebuild(p.history);graphics.setIdle();show('question');$$('.answer-button').forEach(x=>x.disabled=true);current.lastKey=key;}
+  if(current.lastKey!==key){graphics.rebuild(p.history);graphics.setIdle();show('question');$$('.answer-button').forEach(x=>x.disabled=true);current.lastKey=key;schedulePhaseSync(p);}
  }
  if(s.status==='paused')el.drop.disabled=true;
 }
