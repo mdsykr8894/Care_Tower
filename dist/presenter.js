@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const els={auth:$('#auth'),pin:$('#pin'),authError:$('#authError'),clock:$('#clock'),stageName:$('#stageName'),lobby:$('#lobbyView'),live:$('#liveView'),results:$('#resultsView'),reviewView:$('#reviewView'),joined:$('#joinedCount'),lobbyConnected:$('#lobbyConnected'),lobbyNames:$('#lobbyNames'),lobbyNameCount:$('#lobbyNameCount'),qr:$('#qr'),qrFallback:$('#qrFallback'),joinUrl:$('#joinUrl'),linkSelect:$('#linkSelect'),liveRanks:$('#liveRanks'),finalRanks:$('#finalRanks'),podium:$('#podium'),status:$('#liveStatus'),completeCount:$('#completeCount'),completeBar:$('#completeBar'),liveJoined:$('#liveJoined'),liveConnected:$('#liveConnected'),footerInfo:$('#footerInfo'),feedback:$('#feedback'),start:$('#start'),pause:$('#pause'),end:$('#end'),reset:$('#reset'),review:$('#review'),exportData:$('#exportData'),winners:$('#winners'),fullscreen:$('#fullscreen'),reviewNum:$('#reviewNum'),reviewTheme:$('#reviewTheme'),reviewQuestion:$('#reviewQuestion'),reviewOptions:$('#reviewOptions'),reviewExplain:$('#reviewExplain'),reviewAnswered:$('#reviewAnswered'),reviewCorrect:$('#reviewCorrect'),reviewUnanswered:$('#reviewUnanswered'),prev:$('#prevQuestion'),next:$('#nextQuestion'),back:$('#backWinners'),finalSummary:$('#finalSummary')};
+const els={auth:$('#auth'),bootCard:$('#bootCard'),authCard:$('#authCard'),pin:$('#pin'),authError:$('#authError'),clock:$('#clock'),stageName:$('#stageName'),lobby:$('#lobbyView'),live:$('#liveView'),results:$('#resultsView'),reviewView:$('#reviewView'),joined:$('#joinedCount'),lobbyConnected:$('#lobbyConnected'),lobbyNames:$('#lobbyNames'),lobbyNameCount:$('#lobbyNameCount'),qr:$('#qr'),qrFallback:$('#qrFallback'),joinUrl:$('#joinUrl'),linkSelect:$('#linkSelect'),liveRanks:$('#liveRanks'),finalRanks:$('#finalRanks'),podium:$('#podium'),status:$('#liveStatus'),completeCount:$('#completeCount'),completeBar:$('#completeBar'),liveJoined:$('#liveJoined'),liveConnected:$('#liveConnected'),footerInfo:$('#footerInfo'),feedback:$('#feedback'),start:$('#start'),pause:$('#pause'),end:$('#end'),reset:$('#reset'),review:$('#review'),exportData:$('#exportData'),winners:$('#winners'),fullscreen:$('#fullscreen'),reviewNum:$('#reviewNum'),reviewTheme:$('#reviewTheme'),reviewQuestion:$('#reviewQuestion'),reviewOptions:$('#reviewOptions'),reviewExplain:$('#reviewExplain'),reviewAnswered:$('#reviewAnswered'),reviewCorrect:$('#reviewCorrect'),reviewUnanswered:$('#reviewUnanswered'),prev:$('#prevQuestion'),next:$('#nextQuestion'),back:$('#backWinners'),finalSummary:$('#finalSummary')};
 let state=null,skew=0,pin='',view='',reviewData=null,reviewIndex=0,joinedUrl='',events=null,cloudPollBusy=false;
 const fmt=ms=>{let s=Math.max(0,Math.ceil(ms/1000));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');};
 function message(s){els.feedback.textContent=s;}
@@ -43,16 +43,18 @@ async function links(){
  }catch{els.linkSelect.classList.add('hidden');setUrl(location.origin+'/');}
 }
 els.linkSelect.onchange=()=>setUrl(els.linkSelect.value);
-async function unlock(){const value=els.pin.value.trim();if(!value){els.authError.textContent='Enter your presenter PIN.';return;}pin=value;try{await hostFetch('auth');els.auth.classList.add('hidden');sessionStorage.setItem('care-presenter-pin',pin);connect();}catch(e){pin='';els.authError.textContent=e.message;}}
+function showBootCard(){els.auth.classList.remove('hidden');els.bootCard.classList.remove('hidden');els.authCard.classList.add('hidden');}
+function showPinCard(){els.auth.classList.remove('hidden');els.bootCard.classList.add('hidden');els.authCard.classList.remove('hidden');}
+async function unlock(){const value=els.pin.value.trim();if(!value){els.authError.textContent='Enter your presenter PIN.';return;}pin=value;try{await hostFetch('auth');sessionStorage.setItem('care-presenter-pin',pin);showBootCard();connect();}catch(e){pin='';els.authError.textContent=e.message;}}
 els.pin.onkeydown=e=>{if(e.key==='Enter')unlock();};$('#unlock').onclick=unlock;
 // Authenticate without changing state: /api/host/auth only checks PIN.
-async function connect(){await links();try{const c=await(await fetch('/api/config',{cache:'no-store'})).json();window.CARE_CLOUD_MODE=!!c.cloud;render(await(await fetch('/api/state',{cache:'no-store'})).json());if(window.CARE_CLOUD_MODE){
+async function connect(){showBootCard();await links();try{const c=await(await fetch('/api/config',{cache:'no-store'})).json();window.CARE_CLOUD_MODE=!!c.cloud;render(await(await fetch('/api/state',{cache:'no-store'})).json());els.auth.classList.add('hidden');if(window.CARE_CLOUD_MODE){
   setInterval(async()=>{if(cloudPollBusy||document.hidden)return;cloudPollBusy=true;try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw Error('offline');render(await r.json());}catch{message('Connection lost · Sedang cuba sambung semula…');}finally{cloudPollBusy=false;}},2300);
  }else{
   events=new EventSource('/api/events');events.onmessage=e=>{try{render(JSON.parse(e.data));}catch{}};
   events.onerror=()=>message('Connection lost · Sedang cuba sambung semula…');
- }}catch{message('Care Tower belum dapat dihubungi. Cuba refresh sebentar lagi.');}}
+ }}catch{els.bootCard.querySelector('h2').textContent='Connection unavailable';els.bootCard.querySelector('p').textContent='Care Tower belum dapat dihubungi. Cuba refresh sebentar lagi.';message('Care Tower belum dapat dihubungi. Cuba refresh sebentar lagi.');}}
 function tick(){if(!state)return;els.clock.textContent=fmt(state.status==='waiting'?240000:state.status==='paused'?state.remainingMs:Math.max(0,state.endsAt-(Date.now()+skew)));}
 setInterval(tick,150);
-(async()=>{pin=sessionStorage.getItem('care-presenter-pin')||'';if(pin){try{await hostFetch('auth');els.auth.classList.add('hidden');connect();return;}catch{sessionStorage.removeItem('care-presenter-pin');pin='';}}})();
+(async()=>{pin=sessionStorage.getItem('care-presenter-pin')||'';if(pin){try{await hostFetch('auth');connect();return;}catch{sessionStorage.removeItem('care-presenter-pin');pin='';}}showPinCard();})();
 })();

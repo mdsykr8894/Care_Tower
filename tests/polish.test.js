@@ -32,6 +32,11 @@ test('finished-product bilingual UI uses consistent labels and vector icons',()=
  assert.doesNotMatch(source('public/index.html'),/Mula demo|Demo offline|Prototype/);
  assert.doesNotMatch(source('public/presenter.html'),/Mula demo|Demo offline|Prototype/);
 });
+test('presenter refresh uses a loading card before showing PIN or lobby state',()=>{
+ const html=source('public/presenter.html'),js=source('public/presenter.js');
+ assert.match(html,/id="bootCard"/);assert.match(html,/id="authCard" class="auth-card hidden"/);
+ assert.match(js,/showBootCard\(\);await links\(\)/);assert.match(js,/els\.auth\.classList\.add\('hidden'\)/);
+});
 test('cloud bundle does not contain offline answer key',()=>{
  const out=path.resolve(__dirname,'../dist');
  if(fs.existsSync(out))assert.ok(!fs.existsSync(path.join(out,'demo-answers.js')));
