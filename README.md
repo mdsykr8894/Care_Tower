@@ -82,7 +82,7 @@ Vercel Functions **tidak mempunyai filesystem kekal untuk SQLite atau TXT**. Ole
 4. Pada **Project Settings → Environment Variables**, tambah `HOST_PIN` dengan kata laluan presenter yang panjang (sekurang-kurangnya 8 aksara; disyorkan 12+ aksara). Jangan guna PIN mudah.
 5. Dalam **Storage** projek, pilih **Create Database → Blob** dan pilih **Private**. Hubungkan ke project dan pilih environment Production. Vercel menyambungkan credentials seperti `BLOB_READ_WRITE_TOKEN` atau OIDC/store ID. Tidak perlu salin token ke frontend.
 6. Deploy/ **Redeploy** selepas env dan Blob disambungkan.
-7. Uji `https://DOMAIN-ANDA.vercel.app/api/health` → sepatutnya `{"ok":true,"version":"1.3.0",...}`. Jika 503, pastikan Private Blob disambungkan untuk environment deployment yang sedang digunakan.
+7. Uji `https://DOMAIN-ANDA.vercel.app/api/health` → sepatutnya `{"ok":true,"version":"1.3.1",...}`. Jika 503, pastikan Private Blob disambungkan untuk environment deployment yang sedang digunakan.
 8. Buka `https://DOMAIN-ANDA.vercel.app/presenter` dan login guna `HOST_PIN`. QR terus menggunakan domain tersebut. Pemain hanya buka `https://DOMAIN-ANDA.vercel.app/`, masukkan nickname dan join. **Tiada room code, akaun pemain atau PIN pemain.**
 9. Uji 2 telefon daripada rangkaian berbeza: join → Stack → Quiz → leaderboard → Results → Review → Reset. Lakukan latihan dengan seramai mungkin peserta sebelum ceramah.
 

@@ -133,7 +133,14 @@ function apply(s){const p=s.player;current.game=s;if(current.session===null)curr
  }
  if(s.status==='paused')el.drop.disabled=true;
 }
-async function answer(index,button){const s=current.game;if(!s||s.status==='paused'||s.player.phase!=='question'||current.answering)return;current.answering=true;button.classList.add('chosen');$$('.answer-button').forEach(x=>x.disabled=true);sfx('click');try{let response;if(current.demo)response=demoAnswer(index);else response=await sendAction('answer',{choice:index});sfx(response.correct?'right':'wrong');emit(response.correct?'Correct!':'Good try!',response.correct?'+70 points':'0 quiz points');applyFresh(current.demo?localSnapshot():response.player);}catch(err){current.answering=false;emit('Reconnect needed','Sedang periksa sambungan');sync(true);}}
+function recoverActionControls(){
+ current.dropping=false;current.answering=false;
+ const s=current.game;
+ if(!s||s.status==='paused')return;
+ if(s.player.phase==='stack'){graphics.setIdle();el.drop.disabled=false;}
+ if(s.player.phase==='question')$$('.answer-button').forEach(x=>{x.disabled=false;x.classList.remove('chosen');});
+}
+async function answer(index,button){const s=current.game;if(!s||s.status==='paused'||s.player.phase!=='question'||current.answering)return;current.answering=true;button.classList.add('chosen');$$('.answer-button').forEach(x=>x.disabled=true);sfx('click');try{let response;if(current.demo)response=demoAnswer(index);else response=await sendAction('answer',{choice:index});sfx(response.correct?'right':'wrong');emit(response.correct?'Correct!':'Good try!',response.correct?'+70 points':'0 quiz points');applyFresh(current.demo?localSnapshot():response.player);}catch(err){emit('Reconnect needed','Sedang periksa sambungan');await sync(true);recoverActionControls();}}
 async function drop(){
  const s=current.game;
  if(!s||s.status==='paused'||s.player.phase!=='stack'||current.dropping)return;
@@ -150,8 +157,8 @@ async function drop(){
   emit(response.grade==='Perfect'?'Perfect!':response.grade==='Great'?'Great!':response.grade==='Good'?'Good!':'Nice save!',`+${response.points} points`);
   if(response.grade==='Perfect')setTimeout(()=>sfx('perfect'),100);
   applyFresh(current.demo?localSnapshot():response.player);
- }catch(err){
-  emit('Connection check','Sedang pulihkan game');sync(true);
+  }catch(err){
+   emit('Connection check','Sedang pulihkan game');await sync(true);recoverActionControls();
  }
 }
 el.drop.onclick=drop;window.addEventListener('keydown',e=>{if((e.code==='Space'||e.code==='Enter')&&current.game?.status!=='paused'&&current.game?.player.phase==='stack'&&!e.repeat){e.preventDefault();drop();}});

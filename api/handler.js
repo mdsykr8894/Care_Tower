@@ -3,18 +3,23 @@ const {randomBytes,timingSafeEqual}=require('node:crypto');
 const {blobAdapter,query,transaction}=require('../server/blob-store');
 let adapter;
 const getAdapter=()=>adapter||(adapter=blobAdapter());
+const hostFailures=new Map(),HOST_WINDOW_MS=60000,HOST_MAX_FAILURES=8,HOST_BLOCK_MS=300000;
 function send(res,code,obj){res.statusCode=code;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.end(JSON.stringify(obj));}
-function validHost(req){const pin=process.env.HOST_PIN||process.env.PRESENTER_SECRET;if(!pin||pin.length<8)return false;const a=Buffer.from(String(req.headers['x-host-pin']||'')),b=Buffer.from(pin);return a.length===b.length&&timingSafeEqual(a,b);}
+function hostAttemptKey(req){return String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0].trim().slice(0,100);}
+function hostAttemptAllowed(key,now=Date.now()){const entry=hostFailures.get(key);if(!entry)return true;if(entry.blockedUntil>now)return false;if(now-entry.windowStart>=HOST_WINDOW_MS){hostFailures.delete(key);return true;}return true;}
+function recordHostFailure(key,now=Date.now()){const entry=hostFailures.get(key);if(!entry||now-entry.windowStart>=HOST_WINDOW_MS){hostFailures.set(key,{windowStart:now,failures:1,blockedUntil:0});return;}entry.failures++;if(entry.failures>=HOST_MAX_FAILURES)entry.blockedUntil=now+HOST_BLOCK_MS;}
+function validHost(req){const key=hostAttemptKey(req);if(!hostAttemptAllowed(key))return false;const pin=process.env.HOST_PIN||process.env.PRESENTER_SECRET;if(!pin||pin.length<8){recordHostFailure(key);return false;}const a=Buffer.from(String(req.headers['x-host-pin']||'')),b=Buffer.from(pin);const ok=a.length===b.length&&timingSafeEqual(a,b);if(ok)hostFailures.delete(key);else recordHostFailure(key);return ok;}
 function requireHost(req){if(!validHost(req)){const e=new Error('Kata laluan presenter tidak sah.');e.status=403;throw e;}}
 function origin(req){const host=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();const proto=String(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();return `${proto==='http'?'http':'https'}://${host}/`;}
 async function jsonBody(req){if(typeof req.body==='object'&&req.body!==null)return req.body;let raw='';for await(const part of req){raw+=part;if(raw.length>12000)throw Error('Permintaan terlalu besar.');}return JSON.parse(raw||'{}');}
 function pathname(req){const route=req.query?.route;if(typeof route==='string'&&route)return '/api/'+route.replace(/^\/+/, '');if(Array.isArray(route)&&route.length)return '/api/'+route.join('/');return new URL(req.url,'https://example.test').pathname;}
 module.exports=async function handler(req,res){
+ let activeRoute='unknown';
  try{
-  const route=pathname(req),method=req.method;
+  const route=pathname(req),method=req.method;activeRoute=route;
   if(route==='/api/config'&&method==='GET')return send(res,200,{cloud:true});
   if(route==='/api/links'&&method==='GET')return send(res,200,{links:[origin(req)],recommended:origin(req)});
-  if(route==='/api/health'&&method==='GET'){if(!process.env.BLOB_READ_WRITE_TOKEN&&!process.env.BLOB_STORE_ID&&!process.env.VERCEL_OIDC_TOKEN) return send(res,503,{ok:false,error:'Vercel Blob belum disambungkan.'});return send(res,200,{ok:true,version:'1.3.0',storage:'private-vercel-blob'});}
+  if(route==='/api/health'&&method==='GET'){if(!process.env.BLOB_READ_WRITE_TOKEN&&!process.env.BLOB_STORE_ID&&!process.env.VERCEL_OIDC_TOKEN) return send(res,503,{ok:false,error:'Vercel Blob belum disambungkan.'});return send(res,200,{ok:true,version:'1.3.1',storage:'private-vercel-blob'});}
   if(route==='/api/qr.svg'&&method==='GET'){
     const target=new URL(req.url,'https://example.test').searchParams.get('url')||req.query?.url||origin(req);
     if(target!==origin(req)){return send(res,400,{error:'QR URL tidak sepadan dengan website ini.'});}
@@ -43,5 +48,7 @@ module.exports=async function handler(req,res){
     const data=await transaction(store,g=>{g[action]();return g.publicState();});return send(res,200,data);
   }
   return send(res,404,{error:'Endpoint tidak wujud.'});
- }catch(e){const known=/(Penyertaan|Had peserta|Masukkan nama|Permainan sudah|Belum ada pemain|Hanya boleh|Tiada permainan|Statistik hanya|actionId tidak sah|Sekarang bukan masa|Soalan ini|Pilihan tidak sah|Permintaan terlalu besar|JSON tidak sah)/i;const status=e.status||(/Sesi pemain tidak sah/.test(e.message)?401:known.test(e.message)?400:503);return send(res,status,{error:status>=500?'Storan atau sambungan server bermasalah. Cuba sebentar lagi.':e.message});}
+  }catch(e){
+   console.error('[Care Tower API]',activeRoute,e?.name||'Error',e?.status??e?.statusCode??'',e?.message||e);
+   const known=/(Penyertaan|Had peserta|Masukkan nama|Permainan sudah|Belum ada pemain|Hanya boleh|Tiada permainan|Statistik hanya|actionId tidak sah|Sekarang bukan masa|Soalan ini|Pilihan tidak sah|Permintaan terlalu besar|JSON tidak sah)/i;const status=e.status||e.statusCode||(/Sesi pemain tidak sah/.test(e.message)?401:known.test(e.message)?400:503);return send(res,status,{error:status>=500?'Storan atau sambungan server bermasalah. Cuba sebentar lagi.':e.message});}
 };

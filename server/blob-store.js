@@ -3,7 +3,7 @@
 const {GameState}=require('./game-state');
 const PATH=process.env.CARE_STATE_PATH||'care-tower/current-session.json';
 const pause=ms=>new Promise(r=>setTimeout(r,ms));
-function conflict(e){return e?.status===409||e?.status===412||/precondition|already.exists|conflict/i.test(e?.name||'')||/precondition|already exists|conflict/i.test(e?.message||'');}
+function conflict(e){return e?.status===409||e?.status===412||e?.statusCode===409||e?.statusCode===412||/precondition|already.exists|conflict/i.test(e?.name||'')||/precondition|already exists|conflict/i.test(e?.message||'');}
 function blobAdapter(){
  const {get,put}=require('@vercel/blob');
  return {
