@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "dist",
+  "functions": {
+    "api/handler.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:route*",
+      "destination": "/api/handler?route=:route*"
+    },
+    {
+      "source": "/presenter",
+      "destination": "/presenter.html"
+    },
+    {
+      "source": "/presenter/:view*",
+      "destination": "/presenter.html"
+    }
+  ],
+  "buildCommand": "node scripts/build-vercel.js"
+}

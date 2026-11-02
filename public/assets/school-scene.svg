@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 830" preserveAspectRatio="xMidYMid slice">
+<defs>
+ <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#85bde0"/><stop offset=".38" stop-color="#c0d5ed"/><stop offset=".74" stop-color="#fae5cc"/><stop offset="1" stop-color="#ffdcaa"/></linearGradient>
+ <radialGradient id="sun"><stop stop-color="#fff6d5" stop-opacity=".95"/><stop offset="1" stop-color="#fff6d5" stop-opacity="0"/></radialGradient>
+ <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#98bca3"/><stop offset="1" stop-color="#76a590"/></linearGradient>
+ <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe4b9"/><stop offset="1" stop-color="#e9b98d"/></linearGradient>
+ <linearGradient id="path" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ecd2a9"/><stop offset="1" stop-color="#d69b83"/></linearGradient>
+ <filter id="soft"><feGaussianBlur stdDeviation="4"/></filter>
+</defs>
+<rect width="460" height="830" fill="url(#sky)"/>
+<circle cx="362" cy="202" r="146" fill="url(#sun)"/>
+<g fill="#fff9ed" opacity=".67"><path d="M-45 163q21-33 66-27 17-27 48-17 22 4 31 23 32-12 52 17 2 18-17 24H-30z"/><path d="M311 117q13-21 38-18 18-33 53-17 12 6 18 20 22-8 42 14 6 19-13 23H323z"/></g>
+<path d="M0 478Q80 413 174 460T460 444V830H0Z" fill="#b7cbb6" opacity=".85"/>
+<path d="M0 522Q124 458 230 504T460 485V830H0Z" fill="url(#hill)"/>
+<path d="M0 571Q91 535 173 561T460 537V830H0Z" fill="#79a38e"/>
+<!-- trees behind the school -->
+<g stroke="#6c7d64" stroke-width="7" fill="none"><path d="M66 569V413m0 89-28-32m28-37 27-33M422 563V381m0 95-30-39m30-33 24-25"/></g>
+<g fill="#82ab81"><circle cx="40" cy="419" r="47"/><circle cx="90" cy="407" r="53"/><circle cx="39" cy="474" r="35"/><circle cx="407" cy="378" r="55"/><circle cx="459" cy="397" r="53"/><circle cx="399" cy="445" r="45"/></g>
+<g fill="#9fc094"><circle cx="27" cy="408" r="34"/><circle cx="78" cy="379" r="42"/><circle cx="423" cy="363" r="41"/></g>
+<!-- school building -->
+<g transform="translate(107 496)">
+ <rect x="-12" y="56" width="270" height="176" rx="5" fill="#a66c67" opacity=".25"/>
+ <rect x="0" y="47" width="246" height="165" rx="6" fill="url(#wall)" stroke="#bf927e" stroke-width="5"/>
+ <path d="M-20 54 120-27 264 54Z" fill="#c9857c" stroke="#a46869" stroke-width="6" stroke-linejoin="round"/>
+ <path d="M13 51 120-10 231 51" fill="none" stroke="#f4b89c" stroke-width="7"/>
+ <rect x="107" y="-16" width="27" height="20" rx="3" fill="#f5d8ad" stroke="#ae7869" stroke-width="4"/>
+ <g fill="#add6e8" stroke="#9d7877" stroke-width="5"><rect x="25" y="78" width="48" height="48" rx="5"/><rect x="175" y="78" width="48" height="48" rx="5"/></g>
+ <path d="M49 78v48m-24-24h48m126-24v48m-24-24h48" stroke="#f7efe2" stroke-width="4"/>
+ <rect x="94" y="118" width="60" height="94" rx="7" fill="#a77676" stroke="#89626a" stroke-width="5"/>
+ <path d="M103 150Q124 121 145 150" fill="none" stroke="#e8bc99" stroke-width="3"/>
+ <circle cx="143" cy="173" r="3.5" fill="#ffe0a9"/>
+ <rect x="-8" y="203" width="264" height="14" rx="4" fill="#dca68b" stroke="#af8578" stroke-width="3"/>
+ <path d="M123-24v-38h45l-9 10 9 11h-45" fill="#f2ce7e" stroke="#9c8175" stroke-width="4"/>
+ <g fill="#fff6eb"><path d="m124 30-5-8-5 8-9 1 6 6-2 8 10-5 9 5-2-9 7-6Z" transform="scale(.56) translate(96 31)"/></g>
+</g>
+<!-- garden foreground -->
+<path d="M0 711Q96 687 176 718T460 698V830H0Z" fill="#669c7f"/>
+<path d="M0 735Q120 717 221 742T460 726V830H0Z" fill="#86a883"/>
+<path d="M145 830q-7-61 48-118h71q45 53 50 118" fill="url(#path)"/>
+<g fill="#638f74"><ellipse cx="44" cy="728" rx="68" ry="30"/><ellipse cx="420" cy="724" rx="68" ry="34"/><ellipse cx="22" cy="784" rx="70" ry="28"/><ellipse cx="438" cy="782" rx="66" ry="26"/></g>
+<!-- planted pastel flowers -->
+<g stroke="#5e8768" stroke-width="3" stroke-linecap="round"><path d="M50 763v-31m14 31v-39m346 40v-31m15 31v-39M17 797v-20m427 17v-21"/></g>
+<g fill="#f0b1aa"><circle cx="49" cy="731" r="7"/><circle cx="64" cy="725" r="8"/><circle cx="410" cy="730" r="7"/><circle cx="425" cy="721" r="8"/><circle cx="17" cy="775" r="7"/></g>
+<g fill="#f8df91"><circle cx="58" cy="741" r="4"/><circle cx="419" cy="736" r="4"/><circle cx="447" cy="771" r="8"/></g>
+<!-- corner branches -->
+<g fill="#668765" opacity=".9"><ellipse cx="11" cy="25" rx="39" ry="20" transform="rotate(-38 11 25)"/><ellipse cx="53" cy="16" rx="38" ry="17" transform="rotate(20 53 16)"/><ellipse cx="4" cy="89" rx="37" ry="19" transform="rotate(-43 4 89)"/><ellipse cx="459" cy="49" rx="39" ry="19" transform="rotate(35 459 49)"/><ellipse cx="429" cy="18" rx="34" ry="18" transform="rotate(-24 429 18)"/></g>
+<g fill="#edb4ba" opacity=".8"><circle cx="33" cy="72" r="7"/><circle cx="451" cy="88" r="6"/><circle cx="28" cy="13" r="5"/></g>
+</svg>
