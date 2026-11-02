@@ -4,6 +4,7 @@ const fs=require('node:fs');const path=require('node:path');const os=require('no
 const crypto=require('node:crypto');const {spawnSync}=require('node:child_process');
 const {GameState}=require('./game-state');
 const {exportCsv}=require('./export-data');
+const version=require('./version');
 const game=new GameState();
 const PORT=Number(process.env.PORT||3000);
 const HOST='0.0.0.0';const PIN=process.env.HOST_PIN||crypto.randomBytes(4).toString('hex');
@@ -33,7 +34,7 @@ const server=http.createServer(async(req,res)=>{try{
  res.writeHead(200,{'Content-Type':'image/svg+xml','Cache-Control':'no-store'});return res.end(svg);
  }
  if(req.method==='GET'&&pathname==='/api/config')return json(res,200,{cloud:false});
- if(req.method==='GET'&&pathname==='/api/health')return json(res,200,{ok:true,version:'1.3.1',status:game.status});
+ if(req.method==='GET'&&pathname==='/api/health')return json(res,200,{ok:true,version,status:game.status});
  if(req.method==='GET'&&pathname==='/api/state'){game.tick();return json(res,200,game.publicState());}
  if(req.method==='GET'&&pathname==='/api/me')return json(res,200,game.playerState(token(req)));
  if(req.method==='GET'&&pathname==='/api/events'){

@@ -47,7 +47,7 @@ function transaction(adapter,fn,options){
 }
 function storageAdapter(){
  const requested=String(process.env.CARE_STORAGE||'').toLowerCase();
- const useSupabase=requested==='supabase'||(!requested&&process.env.SUPABASE_URL&&(process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY));
+ const useSupabase=requested==='supabase'||(!requested&&process.env.SUPABASE_URL&&(process.env.SUPABASE_SECRET_KEY||process.env.SUPABASE_SERVICE_ROLE_KEY||process.env.SUPABASE_SERVICE_KEY));
  return useSupabase?supabaseAdapter():blobAdapter();
 }
 module.exports={blobAdapter,supabaseAdapter,storageAdapter,query,transaction,conflict};
