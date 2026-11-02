@@ -1,6 +1,7 @@
 'use strict';
 const {randomBytes,timingSafeEqual}=require('node:crypto');
 const {blobAdapter,query,transaction}=require('../server/blob-store');
+const {exportCsv}=require('../server/export-data');
 let adapter;
 const getAdapter=()=>adapter||(adapter=blobAdapter());
 const hostFailures=new Map(),HOST_WINDOW_MS=60000,HOST_MAX_FAILURES=8,HOST_BLOCK_MS=300000;
@@ -42,6 +43,11 @@ module.exports=async function handler(req,res){
   if(route==='/api/ping'&&method==='POST'){await transaction(store,g=>g.touch(token));return send(res,200,{ok:true});}
   if(route==='/api/host/auth'&&method==='GET'){requireHost(req);return send(res,200,{ok:true});}
   if(route==='/api/host/review'&&method==='GET'){requireHost(req);return send(res,200,await query(store,g=>g.review()));}
+  if(route==='/api/host/export'&&method==='GET'){
+   requireHost(req);
+   const csv=await query(store,g=>exportCsv(g.exportRows()));
+   res.statusCode=200;res.setHeader('Content-Type','text/csv; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="care-tower-results.csv"');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.end('\uFEFF'+csv);return;
+  }
   if(route.startsWith('/api/host/')&&method==='POST'){
     requireHost(req);const action=route.substring('/api/host/'.length);
     if(!['start','pause','end','reset'].includes(action))return send(res,404,{error:'Action tidak wujud.'});
@@ -50,5 +56,5 @@ module.exports=async function handler(req,res){
   return send(res,404,{error:'Endpoint tidak wujud.'});
   }catch(e){
    console.error('[Care Tower API]',activeRoute,e?.name||'Error',e?.status??e?.statusCode??'',e?.message||e);
-   const known=/(Penyertaan|Had peserta|Masukkan nama|Permainan sudah|Belum ada pemain|Hanya boleh|Tiada permainan|Statistik hanya|actionId tidak sah|Sekarang bukan masa|Soalan ini|Pilihan tidak sah|Permintaan terlalu besar|JSON tidak sah)/i;const status=e.status||e.statusCode||(/Sesi pemain tidak sah/.test(e.message)?401:known.test(e.message)?400:503);return send(res,status,{error:status>=500?'Storan atau sambungan server bermasalah. Cuba sebentar lagi.':e.message});}
+   const known=/(Penyertaan|Had peserta|Masukkan nama|Permainan sudah|Belum ada pemain|Hanya boleh|Tiada permainan|Statistik hanya|Eksport hanya|actionId tidak sah|Sekarang bukan masa|Soalan ini|Pilihan tidak sah|Permintaan terlalu besar|JSON tidak sah)/i;const status=e.status||e.statusCode||(/Sesi pemain tidak sah/.test(e.message)?401:known.test(e.message)?400:503);return send(res,status,{error:status>=500?'Storan atau sambungan server bermasalah. Cuba sebentar lagi.':e.message});}
 };

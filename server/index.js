@@ -3,6 +3,7 @@ const http=require('node:http');
 const fs=require('node:fs');const path=require('node:path');const os=require('node:os');
 const crypto=require('node:crypto');const {spawnSync}=require('node:child_process');
 const {GameState}=require('./game-state');
+const {exportCsv}=require('./export-data');
 const game=new GameState();
 const PORT=Number(process.env.PORT||3000);
 const HOST='0.0.0.0';const PIN=process.env.HOST_PIN||crypto.randomBytes(4).toString('hex');
@@ -43,6 +44,12 @@ const server=http.createServer(async(req,res)=>{try{
  if(req.method==='POST'&&pathname==='/api/ping'){game.touch(token(req));return json(res,200,{ok:true});}
  if(req.method==='GET'&&pathname==='/api/host/auth'){if(!admin(req))return json(res,403,{error:'PIN presenter tidak sah.'});return json(res,200,{ok:true});}
  if(req.method==='GET'&&pathname==='/api/host/review'){if(!admin(req))return json(res,403,{error:'Presenter tidak dibenarkan.'});return json(res,200,game.review());}
+ if(req.method==='GET'&&pathname==='/api/host/export'){
+  if(!admin(req))return json(res,403,{error:'Presenter tidak dibenarkan.'});
+  const csv=exportCsv(game.exportRows());
+  res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="care-tower-results.csv"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+  return res.end('\uFEFF'+csv);
+ }
  if(req.method==='POST'&&pathname.startsWith('/api/host/')){if(!admin(req))return json(res,403,{error:'PIN presenter tidak sah.'});let action=pathname.slice('/api/host/'.length);if(action==='start')game.start();else if(action==='pause')game.pause();else if(action==='reset')game.reset();else if(action==='end')game.end();else return json(res,404,{error:'Unknown action'});broadcast();return json(res,200,game.publicState());}
  if(req.method==='GET')return staticFile(req,res,pathname);
  json(res,405,{error:'Method not allowed'});

@@ -60,4 +60,18 @@ GameState.fromSnapshot=function(s){const g=new GameState();if(!s)return g;
  for(const k of ['session','revision','status','startedAt','endsAt','pauseAt','lastChanged'])if(s[k]!==undefined)g[k]=s[k];
  g.players=new Map((s.players||[]).map(p=>{p.actions=new Map(p.actions||[]);return [p.token,p];}));return g;
 };
+GameState.prototype.exportRows=function(){
+ if(this.status!=='finished')throw Error('Eksport hanya tersedia selepas permainan tamat.');
+ const rows=[];
+ for(const p of this.players.values()){
+  let score=0;
+  for(let i=0;i<questions.length;i++){
+   const h=p.history.find(x=>x.round===i);
+   const stackPoints=h?.points||0,quizPoints=h?.quizPoints||0;
+   score+=stackPoints+quizPoints;
+   rows.push({'Nama':p.name,'Round':i+1,'Soalan':questions[i].question,'Jawapan Dipilih':h&&Number.isInteger(h.choice)?'ABCD'[h.choice]:'','Betul':h?(h.correct?'Ya':'Tidak'):'','Grade Stacking':h?.grade||'','Mata Stacking':h?stackPoints:'','Mata Quiz':h?quizPoints:'','Skor Selepas Round':h?score:''});
+  }
+ }
+ return rows;
+};
 module.exports={GameState,questions,GAME_MS,ANSWER_MS,STACK_MS,STACK_FEEDBACK_MS,QUIZ_FEEDBACK_MS,motionX,gradeForOffset};

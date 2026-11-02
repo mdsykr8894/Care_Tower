@@ -14,4 +14,4 @@
 @media(max-height:800px) and (min-width:971px){.lobby-players{padding:9px 12px;margin-top:8px}.lobby-name-grid{max-height:130px}.lobby-copy h1{font-size:clamp(34px,4vw,60px)}}
 
 /* v1.3 unified cozy controls */
-.care-ui-icon{display:inline-block;width:18px;height:18px;vertical-align:middle}.toolbar button{min-height:36px}.card-title .care-ui-icon{color:#9b799f}.progress-icon .care-ui-icon{height:48px;width:48px;color:#ad95b7}
+.care-ui-icon{display:inline-block;width:18px;height:18px;vertical-align:middle}.toolbar button{min-height:36px}.card-title .care-ui-icon{color:#9b799f}.progress-icon .care-ui-icon{height:48px;width:48px;color:#ad95b7}.app-version{position:fixed;right:8px;bottom:5px;z-index:20;font-size:9px;font-weight:700;letter-spacing:.2px;color:#8f7d88;opacity:.58;white-space:nowrap;pointer-events:none}
