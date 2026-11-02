@@ -1,7 +1,7 @@
 'use strict';
 const {randomBytes}=require('node:crypto');
 const questions=require('./private-questions.json');
-const GAME_MS=240000,ANSWER_MS=18000,STACK_MS=4000,STACK_FEEDBACK_MS=620,QUIZ_FEEDBACK_MS=720,MAX_PLAYERS=60,WORLD_WIDTH=460, PRESENCE_MS=55000, MAX_TAP_COMPENSATION_MS=110;
+const GAME_MS=240000,ANSWER_MS=18000,STACK_MS=4000,STACK_FEEDBACK_MS=620,QUIZ_FEEDBACK_MS=720,MAX_PLAYERS=60,WORLD_WIDTH=460, PRESENCE_MS=55000, MAX_TAP_COMPENSATION_MS=450;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function motionX(round,elapsed){const width=144-Math.floor(round/3)*3,lo=8,hi=WORLD_WIDTH-width-8,run=hi-lo;const dist=Math.max(0,elapsed)/1000*(160+round*17),p=dist%(2*run);return round%2===0?lo+(p<=run?p:2*run-p):hi-(p<=run?p:2*run-p);}
 function gradeForOffset(offset){return offset<=8?['Perfect',30]:offset<=22?['Great',24]:offset<=40?['Good',15]:['Saved',5];}
@@ -40,8 +40,9 @@ class GameState {
  idempotent(p,kind,actionId,handler){if(typeof actionId!=='string'||!/^[-\w]{8,80}$/.test(actionId))throw Error('actionId tidak sah.');const key=kind+':'+actionId;if(p.actions.has(key))return p.actions.get(key);const value=handler();p.actions.set(key,value);if(p.actions.size>30)p.actions.delete(p.actions.keys().next().value);return value;}
  drop(token,_reportedElapsed,now=Date.now(),actionId,tapAt){const p=this.getPlayer(token);p.lastSeen=now;return this.idempotent(p,'drop',actionId,()=>{
   this.tick(now);if(this.status!=='playing'||p.phase!=='stack')throw Error('Sekarang bukan masa menjatuhkan blok.');
-  // Never trust elapsed milliseconds, x coordinate or grade reported by browser.
-  const validTap=Number.isFinite(tapAt)&&tapAt<=now&&now-tapAt<=600&&tapAt>=p.phaseStart-120;const effectiveAt=validTap?Math.max(now-MAX_TAP_COMPENSATION_MS,tapAt):now;
+  // Use a recent client tap timestamp to keep the visual landing and server result aligned.
+  // Old/future timestamps are still ignored; elapsed, x and grade from the browser remain untrusted.
+  const validTap=Number.isFinite(tapAt)&&tapAt<=now&&now-tapAt<=MAX_TAP_COMPENSATION_MS&&tapAt>=p.phaseStart-120;const effectiveAt=validTap?tapAt:now;
   const elapsed=clamp(effectiveAt-p.phaseStart,0,STACK_MS);const x=motionX(p.round,elapsed),width=144-Math.floor(p.round/3)*3,previous=p.round===0?144:144-Math.floor((p.round-1)/3)*3;const target=p.topX+(previous-width)/2,offset=Math.abs(x-target);const [grade,points]=gradeForOffset(offset);const finalX=grade==='Perfect'?target:target+Math.sign(x-target)*Math.min(offset,85)*.43;
   p.topX=finalX;p.stackScore+=points;p.score=p.quizScore+p.stackScore;if(grade==='Perfect')p.perfect++;
   this.finishStack(p,now,grade,points,finalX);this.stamp(now);return {grade,points,score:p.score,x,finalX,offset,compensatedMs:now-effectiveAt};

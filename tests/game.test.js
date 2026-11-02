@@ -22,7 +22,7 @@ test('review statistics count unanswered separately and cannot be accessed early
 test('finished game exports participant answers without session tokens',()=>{const g=new GameState(),p=g.register('Export Me');g.start(1000);g.drop(p.token,100,1300,randomId(1));g.tick(p.phaseEnd);g.answer(p.token,questions[0].answer,p.phaseStart+100,randomId(2));g.end(4500);const rows=g.exportRows(),csv=exportCsv(rows);assert.equal(rows.length,10);assert.equal(rows[0]['Nama'],'Export Me');assert.equal(rows[0]['Jawapan Dipilih'],'ABCD'[questions[0].answer]);assert.equal(rows[0]['Betul'],'Ya');assert.match(csv,/"Nama".*"Jawapan Dipilih"/);assert.doesNotMatch(csv,new RegExp(p.token));});
 test('resume token persists until session reset; stale tokens are rejected',()=>{const g=new GameState(),p=g.register('Returner');g.start(1000);g.drop(p.token,111,1500,randomId(1));assert.equal(g.playerState(p.token,1600).player.stackScore,p.stackScore);g.reset(2000);assert.throws(()=>g.playerState(p.token),/Sesi pemain tidak sah/);assert.equal(g.status,'waiting');});
 test('presence expires after 55 seconds while player rank and score persist',()=>{const g=new GameState(),p=g.register('Offline',1000);assert.equal(g.publicState(2000).connected,1);assert.equal(g.publicState(57001).connected,0);assert.equal(g.players.size,1);g.touch(p.token,34000);assert.equal(g.publicState(35000).connected,1);});
-test('server compensates for at most 110ms of plausible latency and rejects impossible timestamps',()=>{
+test('server compensates for at most 450ms of plausible latency and rejects impossible timestamps',()=>{
  const mk=()=>{const g=new GameState(),p=g.register('Latency tester',1000);g.start(1000);return {g,p};};
  const a=mk(),b=mk(),c=mk();
  const received=2000;
@@ -32,6 +32,12 @@ test('server compensates for at most 110ms of plausible latency and rejects impo
  assert.equal(compensated.compensatedMs,80);
  assert.equal(forged.compensatedMs,0);
  assert.equal(forged.x,uncorrected.x);
+});
+test('recent tap timestamp prevents a delayed response from shifting a centered landing',()=>{
+ const g=new GameState(),p=g.register('Network tester',1000);g.start(1000);
+ const result=g.drop(p.token,0,1350,'drop-network-0001',1000);
+ assert.equal(result.compensatedMs,350);
+ assert.equal(result.finalX,p.topX);
 });
 test('revision is monotonic across scoring, reset and serialized snapshot',()=>{
  const g=new GameState(),a=g.register('Revision tester',1000);const before=g.revision;
